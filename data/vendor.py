@@ -73,18 +73,18 @@ def download(path):
 
 def market_info():
     """
-    1. Get top 100 coins from Coinmarketcap
+    1. Get top 150 coins from Coinmarketcap
     2. Iterate back in time to get market info
     """
 
-    # Top 100 coins by market cap
+    # Top 150 coins by market cap
     top_coins = get(
         "https://web-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
         parameters={
             "aux": "circulating_supply,max_supply,total_supply",
             "convert": "USD",
             "cryptocurrency_type": "coins",
-            "limit": "100",
+            "limit": "150",
             "sort": "market_cap",
             "sort_dir": "desc",
             "start": "1",
