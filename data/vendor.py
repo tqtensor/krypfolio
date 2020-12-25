@@ -2,13 +2,12 @@ import glob
 import json
 import os
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from random import randrange
 
 import pandas as pd
 from dateutil import rrule
-from numpy.lib.shape_base import dsplit
 from requests import Request, Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 from tqdm.auto import tqdm
@@ -97,10 +96,12 @@ def market_info():
 
     if not os.path.exists("./data/raw"):
         os.mkdir("./data/raw")
+    if not os.path.exists("./data/processed"):
+        os.mkdir("./data/processed")
 
     # Prepare the list of coins to download
     today = date.today()
-    start = today + timedelta(weeks=-52 * 5)
+    start = today + timedelta(weeks=-52 * 6)
 
     monthly_list = list(
         reversed(list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today)))
@@ -122,8 +123,25 @@ def market_info():
     with ThreadPool(32) as p:
         _ = list(tqdm(p.imap(download, to_download), total=len(to_download)))
 
+    # Consolidate data
+    existing_data = glob.glob("./data/raw/*.json")
+
+    for coin in top_coins:
+        to_consolidate = [
+            x
+            for x in existing_data
+            if coin == x.replace("./data/raw/", "").replace(".json", "").split("_")[0]
+        ]
+        data = list()
+        for path in to_consolidate:
+            content = json.load(open(path))
+            content = [x["quote"]["USD"] for x in content["data"]["quotes"]]
+            data.append(content)
+        data = sum(data, [])
+        data = pd.DataFrame(data)
+        data.sort_values(by="timestamp", inplace=True)
+        data.to_csv(f"./data/processed/{coin}.csv", index=False)
+
 
 if __name__ == "__main__":
     market_info()
-
-    print("Done")
