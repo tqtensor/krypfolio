@@ -1,3 +1,4 @@
 .vscode
 data/raw
 data/processed
+*.pyc

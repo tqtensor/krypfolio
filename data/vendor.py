@@ -8,7 +8,7 @@ from random import randrange
 
 import pandas as pd
 from dateutil import rrule
-from requests import Request, Session
+from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 from tqdm.auto import tqdm
 
