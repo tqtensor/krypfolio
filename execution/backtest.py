@@ -1,7 +1,7 @@
+import pickle
 import sys
 
 import numpy as np
-import pickle
 
 sys.path.insert(0, "./strategies")
 from hodl20 import HODL20
@@ -13,6 +13,14 @@ def balance(portfolio):
     """
 
     return sum([alloc["close"] * alloc["amount"] for alloc in portfolio["allocations"]])
+
+
+def price(portfolio):
+    """
+    Calculate price of the portfolio
+    """
+
+    return sum([alloc["close"] * alloc["ratio"] for alloc in portfolio["allocations"]])
 
 
 def update_price(portfolio, allocation):
@@ -28,7 +36,7 @@ def update_price(portfolio, allocation):
     return portfolio
 
 
-def rebalance(portfolio, allocation, investment):
+def rebalance(portfolio, prices, allocation, investment):
     """
     Distribute the investment based on each coin's ratio
     """
@@ -36,14 +44,38 @@ def rebalance(portfolio, allocation, investment):
     # Update price of coins in the portfolio
     portfolio = update_price(portfolio, allocation)
     balance_ = balance(portfolio)
+    price_ = price(allocation)
     print("Current porfolio's balance", round(balance_, 0))
     print("Current price of Bitcoin", round(allocation["allocations"][0]["close"], 0))
-    if balance_ == 0:
-        balance_ = investment
+
+    # Inject investment in three stages
+    fund = 0
+    injection = None
+    if investment > 0:
+        try:
+            if (price_ > prices[-1]) and (price_ > prices[-2]):
+                fund = investment
+                injection = "Third"
+            if (price_ > prices[-1]) and (price_ <= prices[-2]):
+                fund = 0.25 * investment
+                injection = "Second"
+        except:
+            pass
+        if balance_ == 0:
+            fund = 0.20 * investment
+            injection = "First"
+
+    balance_ += fund
 
     for alloc in allocation["allocations"]:
         alloc["amount"] = alloc["ratio"] * balance_ / alloc["close"]
-    return allocation
+    print(
+        f"{injection} investment injection",
+        round(fund, 1),
+        "left-over investment",
+        round(investment - fund, 1),
+    )
+    return allocation, investment - fund
 
 
 def main():
@@ -53,7 +85,7 @@ def main():
     init_investment = investment
 
     # Trailing stop loss
-    loss = 0.25
+    loss = 0.20
 
     # Use pre allocated allocations or not
     use_preallocated = True
@@ -78,6 +110,7 @@ def main():
     balance_ = None
     end_balance_ = None
     max_balance = -np.inf
+    prices = list()
     for alloc in allocations:
         try:
             total_ratio = sum([x["ratio"] for x in alloc["allocations"]])
@@ -86,8 +119,10 @@ def main():
             else:
                 print("*********************************")
                 print("Rebalance at", alloc["timestamp"])
-                krypfolio = rebalance(krypfolio, alloc, investment)
+                krypfolio, investment = rebalance(krypfolio, prices, alloc, investment)
                 balance_ = balance(krypfolio)
+                price_ = price(krypfolio)
+                prices.append(price_)
                 if balance_ > max_balance:
                     max_balance = balance_
                 if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
@@ -95,7 +130,7 @@ def main():
                     print("STOP LOSS")
                     for alloc_ in krypfolio["allocations"]:
                         alloc_["amount"] = 0
-                    investment = balance_
+                    investment += balance_
                     max_balance = -np.inf
                 if not start_btc:
                     start_btc = alloc["allocations"][0]["close"]
@@ -108,18 +143,17 @@ def main():
             if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
                 # Reset the portfolio
                 print("*********************************")
-                print("Balance at {0}: {1}".format(alloc["timestamp"], round(balance_, 0)))
+                print(
+                    "Balance at {0}: {1}".format(alloc["timestamp"], round(balance_, 0))
+                )
                 print("STOP LOSS")
                 for alloc_ in krypfolio["allocations"]:
                     alloc_["amount"] = 0
-                investment = balance_
+                investment += balance_
                 max_balance = -np.inf
 
     end_btc = allocations[-1]["allocations"][0]["close"]
-    if balance_ == 0:
-        end_balance_ = investment
-    else:
-        end_balance_ = balance_
+    end_balance_ = investment + balance_
     print("*********************************")
     print("REPORT")
     print("Start date:", start_date)
