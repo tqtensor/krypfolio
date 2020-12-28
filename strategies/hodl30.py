@@ -5,12 +5,13 @@ import pickle
 from datetime import date, datetime
 from multiprocessing import Pool
 
+import numpy as np
 import pandas as pd
 from dateutil import rrule
 from tqdm.auto import tqdm
 
 
-class HODL20:
+class HODL30:
     def __init__(self) -> None:
         super().__init__()
 
@@ -23,6 +24,19 @@ class HODL20:
         data = list()
         for path in all_data:
             df = pd.read_csv(path)
+
+            # Exponentially weighted moving average
+            if "ewma_market_cap" not in df.columns:
+                times = pd.to_datetime(df["timestamp"].values)
+                market_cap = df.copy()
+                market_cap = market_cap[["market_cap"]]
+                market_cap.columns = ["ewma_market_cap"]
+                market_cap = market_cap.ewm(
+                    halflife="3 days", times=pd.DatetimeIndex(times)
+                ).mean()
+                df = pd.concat([df, market_cap], axis=1)
+                df.to_csv(path, index=False)
+
             df["timestamp"] = pd.to_datetime(df["timestamp"].values)
             df["timestamp"] = df["timestamp"].dt.date
             df = df[df["timestamp"] == pd.Timestamp(dt)]
@@ -38,24 +52,26 @@ class HODL20:
 
     def allocate(self, dt):
         """
-        Calculate krypfolio based on HODL 20 algorithm
+        Calculate krypfolio based on HODL 30 algorithm
         """
 
-        n_coins = 20
-        cap = 0.10
+        n_coins = 30
+        cap = 0.08
 
-        market = self.data_at_date(dt, ["market_cap", "close"])
-        market = list(sorted(market, key=lambda alloc: -alloc["market_cap"]))[
+        market = self.data_at_date(dt, ["ewma_market_cap", "close"])
+        market = list(sorted(market, key=lambda alloc: -alloc["ewma_market_cap"]))[
             :n_coins
         ]  # sort by descending ratio
-        total_cap = sum([coin["market_cap"] for coin in market])
+        total_cap = sum([np.sqrt(coin["ewma_market_cap"]) for coin in market])
 
         allocations = [
             {
                 "symbol": coin["name"],
-                "market_cap": coin["market_cap"],
+                "ewma_market_cap": coin["ewma_market_cap"],
                 "close": coin["close"],
-                "ratio": (coin["market_cap"] / total_cap),  # ratios (sums to 100%)
+                "ratio": (
+                    np.sqrt(coin["ewma_market_cap"]) / total_cap
+                ),  # ratios (sums to 100%)
             }
             for coin in market
         ]
@@ -72,13 +88,13 @@ class HODL20:
                 remaining_allocs = allocations[i + 1 :]
 
                 total_nested_cap = sum(
-                    [n_alloc["market_cap"] for n_alloc in remaining_allocs]
+                    [n_alloc["ewma_market_cap"] for n_alloc in remaining_allocs]
                 )  # market cap of the remaining coins
                 new_allocs = list()
 
                 for n_alloc in remaining_allocs:
                     cap_fraction = (
-                        n_alloc["market_cap"] / total_nested_cap
+                        n_alloc["ewma_market_cap"] / total_nested_cap
                     )  # percentage of the remainder this makes up (sums to 100%)
                     n_alloc["ratio"] += overflow * cap_fraction  # weighted
                     new_allocs.append(n_alloc)
@@ -103,6 +119,6 @@ class HODL20:
 
 
 if __name__ == "__main__":
-    hodl20 = HODL20()
-    allocations = hodl20.main("2014-01-01")
-    pickle.dump(allocations, open("hodl20.bin", "wb"))
+    hodl30 = HODL30()
+    allocations = hodl30.main("2014-01-01")
+    pickle.dump(allocations, open("hodl30.bin", "wb"))

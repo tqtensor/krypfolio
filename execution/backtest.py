@@ -1,10 +1,11 @@
 import pickle
 import sys
+from datetime import date, datetime
 
 import numpy as np
+from dateutil import rrule
 
 sys.path.insert(0, "./strategies")
-from hodl20 import HODL20
 
 
 def balance(portfolio):
@@ -80,25 +81,33 @@ def rebalance(portfolio, prices, allocation, investment):
 
 def main():
 
+    # Strategy name
+    strategy = "hodl30"
+
     # Initial invesment
     investment = 1000
     init_investment = investment
 
     # Trailing stop loss
-    loss = 0.20
+    loss = 0.25
 
-    # Use pre allocated allocations or not
-    use_preallocated = True
+    # Rebalance period in weeks
+    r = 4
+
+    # Start date
+    start = "2015-01-01"
+    start = datetime.strptime(start, "%Y-%m-%d")
+    today = date.today()
+
+    intervals = list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today))
+    intervals = [
+        intervals[i] for i in range(len(intervals)) if i % r == 0
+    ]  # relance after each r weeks
 
     # Portfolios should follow the same structure
     # List(Dict(symbol, price, ratio, market_cap, amount))
-    if use_preallocated:
-        allocations = pickle.load(open("allocations.bin", "rb"))
-    else:
-        strategy = HODL20()
-        allocations = strategy.main("2015-01-01", 4)
-        allocations = [alloc for alloc in allocations if len(alloc["allocations"]) > 0]
-        pickle.dump(allocations, open("allocations.bin", "wb"))
+    allocations = pickle.load(open(f"{strategy}.bin", "rb"))
+    allocations = [alloc for alloc in allocations if len(alloc["allocations"]) > 0]
 
     krypfolio = allocations[0]
     for alloc in krypfolio["allocations"]:
@@ -112,7 +121,7 @@ def main():
     max_balance = -np.inf
     prices = list()
     for alloc in allocations:
-        try:
+        if alloc["timestamp"] in intervals:
             total_ratio = sum([x["ratio"] for x in alloc["allocations"]])
             if np.abs(total_ratio - 1) > 0.001:  # check the validity of an allocation
                 print("You need to check the allocation strategy")
@@ -135,7 +144,7 @@ def main():
                 if not start_btc:
                     start_btc = alloc["allocations"][0]["close"]
                     start_date = alloc["timestamp"]
-        except:  # daily alloc, no ratio was calculated
+        else:  # daily alloc, no ratio was calculated
             krypfolio = update_price(krypfolio, alloc)
             balance_ = balance(krypfolio)
             if balance_ > max_balance:
@@ -158,7 +167,7 @@ def main():
     print("REPORT")
     print("Start date:", start_date)
     print("Bitcoin: {}x".format(round(end_btc / start_btc, 1)))
-    print("HODL 20: {}x".format(round(end_balance_ / init_investment, 1)))
+    print("Krypfolio: {}x".format(round(end_balance_ / init_investment, 1)))
 
 
 if __name__ == "__main__":
