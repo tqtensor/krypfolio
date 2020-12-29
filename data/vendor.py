@@ -2,7 +2,7 @@ import glob
 import json
 import os
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from random import randrange
 
@@ -101,13 +101,14 @@ def market_info():
         os.mkdir("./data/processed")
 
     # Prepare the list of coins to download
-    today = date.today()
-    start = today + timedelta(weeks=-52 * 6)
+    end = datetime(day=1, month=date.today().month, year=date.today().year)
+    start = end + timedelta(weeks=-52 * 6)
+    start = datetime(day=1, month=start.month, year=start.year)
 
     monthly_list = list(
-        reversed(list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today)))
+        reversed(list(rrule.rrule(rrule.MONTHLY, dtstart=start, until=end)))
     )
-    n = 8
+    n = 1  # monthly
     all_data = list()
     for i in range(0, len(monthly_list) - n, n):
         time_end = int(monthly_list[i].timestamp())

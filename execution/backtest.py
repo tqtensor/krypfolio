@@ -82,7 +82,7 @@ def rebalance(portfolio, prices, allocation, investment):
 def main():
 
     # Strategy name
-    strategy = "hodl30"
+    strategy = "hodl20"
 
     # Initial invesment
     investment = 1000
