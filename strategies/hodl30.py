@@ -12,7 +12,7 @@ from dateutil import rrule
 from tqdm.auto import tqdm
 
 # Halflife
-ALPHA = 12
+ALPHA = 3
 
 
 class HODL30:

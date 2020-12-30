@@ -46,8 +46,8 @@ def rebalance(portfolio, prices, allocation, investment):
     portfolio = update_price(portfolio, allocation)
     balance_ = balance(portfolio)
     price_ = price(allocation)
-    print("Current porfolio's balance", round(balance_, 0))
-    print("Current price of Bitcoin", round(allocation["allocations"][0]["close"], 0))
+    print("Current price of Bitcoin", int(allocation["allocations"][0]["close"]))
+    print("Current portfolio's balance", int(balance_))
 
     # Inject investment in three stages
     fund = 0
@@ -72,9 +72,9 @@ def rebalance(portfolio, prices, allocation, investment):
         alloc["amount"] = alloc["ratio"] * balance_ / alloc["close"]
     print(
         f"{injection} investment injection",
-        round(fund, 1),
+        int(fund),
         "left-over investment",
-        round(investment - fund, 1),
+        int(investment - fund),
     )
     return allocation, investment - fund
 
@@ -130,6 +130,7 @@ def main():
                 print("Rebalance at", alloc["timestamp"])
                 krypfolio, investment = rebalance(krypfolio, prices, alloc, investment)
                 balance_ = balance(krypfolio)
+                print("Current total fund", int(balance_ + investment))
                 price_ = price(krypfolio)
                 prices.append(price_)
                 if balance_ > max_balance:
@@ -142,7 +143,11 @@ def main():
                     investment += balance_
                     max_balance = -np.inf
                 if not start_btc:
-                    start_btc = alloc["allocations"][0]["close"]
+                    start_btc = [
+                        x["close"]
+                        for x in alloc["allocations"]
+                        if x["symbol"] == "bitcoin"
+                    ][0]
                     start_date = alloc["timestamp"]
         else:  # daily alloc, no ratio was calculated
             krypfolio = update_price(krypfolio, alloc)
@@ -152,16 +157,17 @@ def main():
             if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
                 # Reset the portfolio
                 print("*********************************")
-                print(
-                    "Balance at {0}: {1}".format(alloc["timestamp"], round(balance_, 0))
-                )
-                print("STOP LOSS")
+                print("STOP LOSS at", alloc["timestamp"])
+                print("Current portfolio's balance", int(balance_))
+                print("Current loss", round((max_balance - balance_) / max_balance, 3))
                 for alloc_ in krypfolio["allocations"]:
                     alloc_["amount"] = 0
                 investment += balance_
                 max_balance = -np.inf
 
-    end_btc = allocations[-1]["allocations"][0]["close"]
+    end_btc = [
+        x["close"] for x in allocations[-1]["allocations"] if x["symbol"] == "bitcoin"
+    ][0]
     end_balance_ = investment + balance_
     print("*********************************")
     print("REPORT")

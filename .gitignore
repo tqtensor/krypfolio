@@ -3,3 +3,4 @@ data/raw
 data/processed
 *.pyc
 *.bin
+*.lock
