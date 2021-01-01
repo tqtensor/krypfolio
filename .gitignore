@@ -4,3 +4,5 @@ data/processed
 *.pyc
 *.bin
 *.lock
+*.csv
+.DS_Store

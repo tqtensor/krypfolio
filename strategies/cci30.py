@@ -108,4 +108,4 @@ class CCi30:
 if __name__ == "__main__":
     cci30 = CCi30()
     allocations = cci30.main("2014-01-01")
-    pickle.dump(allocations, open(f"cci30_{ALPHA}_days.bin", "wb"))
+    pickle.dump(allocations, open(f"cci30-{ALPHA}-days.bin", "wb"))

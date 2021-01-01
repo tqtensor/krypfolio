@@ -65,7 +65,7 @@ class HODL30:
         """
 
         n_coins = 30
-        cap = 0.08
+        cap = 0.06
 
         market = self.data_at_date(dt, [f"ewma_market_cap_{ALPHA}_days", "close"])
         market = list(
@@ -134,4 +134,4 @@ class HODL30:
 if __name__ == "__main__":
     hodl30 = HODL30()
     allocations = hodl30.main("2014-01-01")
-    pickle.dump(allocations, open(f"hodl30_{ALPHA}_days.bin", "wb"))
+    pickle.dump(allocations, open(f"hodl30-{ALPHA}-days.bin", "wb"))

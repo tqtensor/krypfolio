@@ -9,6 +9,7 @@ python-dateutil = "*"
 pandas = "*"
 tqdm = "*"
 scipy = "*"
+quantstats = "*"
 
 [dev-packages]
 

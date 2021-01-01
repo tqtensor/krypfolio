@@ -1,182 +1,244 @@
+import os
 import pickle
 import sys
 from datetime import date, datetime
 
 import numpy as np
+import pandas as pd
 from dateutil import rrule
 
 sys.path.insert(0, "./strategies")
 
 
-def balance(portfolio):
-    """
-    Calculate balance of the portfolio
-    """
+class Krypfolio:
+    def __init__(self, debug=True) -> None:
+        super().__init__()
+        self.debug = debug
 
-    return sum([alloc["close"] * alloc["amount"] for alloc in portfolio["allocations"]])
-
-
-def price(portfolio):
-    """
-    Calculate price of the portfolio
-    """
-
-    return sum([alloc["close"] * alloc["ratio"] for alloc in portfolio["allocations"]])
-
-
-def update_price(portfolio, allocation):
-    """
-    Utility to update the latest prices for portfolio
-    """
-
-    # Update price of coins in the portfolio
-    for x in portfolio["allocations"]:
-        for y in allocation["allocations"]:
-            if x["symbol"] == y["symbol"]:
-                x["close"] = y["close"]
-    return portfolio
-
-
-def rebalance(portfolio, prices, allocation, investment):
-    """
-    Distribute the investment based on each coin's ratio
-    """
-
-    # Update price of coins in the portfolio
-    portfolio = update_price(portfolio, allocation)
-    balance_ = balance(portfolio)
-    price_ = price(allocation)
-    print("Current price of Bitcoin", int(allocation["allocations"][0]["close"]))
-    print("Current portfolio's balance", int(balance_))
-
-    # Inject investment in three stages
-    fund = 0
-    injection = None
-    if investment > 0:
-        try:
-            if (price_ > prices[-1]) and (price_ > prices[-2]):
-                fund = investment
-                injection = "Third"
-            if (price_ > prices[-1]) and (price_ <= prices[-2]):
-                fund = 0.25 * investment
-                injection = "Second"
-        except:
+    def _print(self, msg):
+        if self.debug:
+            print(msg)
+        else:
             pass
-        if balance_ == 0:
-            fund = 0.20 * investment
-            injection = "First"
 
-    balance_ += fund
+    def balance(self, portfolio):
+        """
+        Calculate balance of the portfolio
+        """
 
-    for alloc in allocation["allocations"]:
-        alloc["amount"] = alloc["ratio"] * balance_ / alloc["close"]
-    print(
-        f"{injection} investment injection",
-        int(fund),
-        "left-over investment",
-        int(investment - fund),
-    )
-    return allocation, investment - fund
+        return sum(
+            [alloc["close"] * alloc["amount"] for alloc in portfolio["allocations"]]
+        )
 
+    def price(self, portfolio):
+        """
+        Calculate price of the portfolio
+        """
 
-def main():
+        return sum(
+            [alloc["close"] * alloc["ratio"] for alloc in portfolio["allocations"]]
+        )
 
-    # Strategy name
-    strategy = "hodl20"
+    def update_price(self, portfolio, allocation):
+        """
+        Utility to update the latest prices for portfolio
+        """
 
-    # Initial invesment
-    investment = 1000
-    init_investment = investment
+        # Update price of coins in the portfolio
+        for x in portfolio["allocations"]:
+            for y in allocation["allocations"]:
+                if x["symbol"] == y["symbol"]:
+                    x["close"] = y["close"]
+        return portfolio
 
-    # Trailing stop loss
-    loss = 0.25
+    def rebalance(self, portfolio, prices, allocation, investment):
+        """
+        Distribute the investment based on each coin's ratio
+        """
 
-    # Rebalance period in weeks
-    r = 4
+        # Update price of coins in the portfolio
+        portfolio = self.update_price(portfolio, allocation)
+        balance_ = self.balance(portfolio)
+        price_ = self.price(allocation)
+        self._print(
+            "Current price of Bitcoin: {}".format(
+                int(allocation["allocations"][0]["close"])
+            )
+        )
+        self._print("Current portfolio's balance: {}".format(int(balance_)))
 
-    # Start date
-    start = "2015-01-01"
-    start = datetime.strptime(start, "%Y-%m-%d")
-    today = date.today()
+        # Inject investment in three stages
+        fund = 0
+        injection = None
+        if investment > 0:
+            try:
+                if (price_ > prices[-1]) and (price_ > prices[-2]):
+                    fund = investment
+                    injection = "Third"
+                if (price_ > prices[-1]) and (price_ <= prices[-2]):
+                    fund = 0.25 * investment
+                    injection = "Second"
+            except:
+                pass
+            if balance_ == 0:
+                fund = 0.20 * investment
+                injection = "First"
 
-    intervals = list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today))
-    intervals = [
-        intervals[i] for i in range(len(intervals)) if i % r == 0
-    ]  # relance after each r weeks
+        balance_ += fund
 
-    # Portfolios should follow the same structure
-    # List(Dict(symbol, price, ratio, market_cap, amount))
-    allocations = pickle.load(open(f"{strategy}.bin", "rb"))
-    allocations = [alloc for alloc in allocations if len(alloc["allocations"]) > 0]
+        for alloc in allocation["allocations"]:
+            alloc["amount"] = alloc["ratio"] * balance_ / alloc["close"]
+        self._print(
+            "{0} investment injection: {1} - leftover investment: {2}".format(
+                injection, int(fund), int(investment - fund)
+            )
+        )
+        return allocation, investment - fund
 
-    krypfolio = allocations[0]
-    for alloc in krypfolio["allocations"]:
-        alloc["amount"] = 0  # init amount
+    def main(self, strategy, loss, r, start):
+        """
+        Args:
+            strategy: strategy name
+            loss: trailing loss percentage
+            r: rebalance period in week
+            start: start date
+        """
 
-    # Rebalance the portfolio
-    start_btc = None
-    start_date = None
-    balance_ = None
-    end_balance_ = None
-    max_balance = -np.inf
-    prices = list()
-    for alloc in allocations:
-        if alloc["timestamp"] in intervals:
-            total_ratio = sum([x["ratio"] for x in alloc["allocations"]])
-            if np.abs(total_ratio - 1) > 0.001:  # check the validity of an allocation
-                print("You need to check the allocation strategy")
-            else:
-                print("*********************************")
-                print("Rebalance at", alloc["timestamp"])
-                krypfolio, investment = rebalance(krypfolio, prices, alloc, investment)
-                balance_ = balance(krypfolio)
-                print("Current total fund", int(balance_ + investment))
-                price_ = price(krypfolio)
-                prices.append(price_)
+        # Strategy name
+        strategy = strategy
+
+        # Initial invesment
+        investment = 1000
+        init_investment = investment
+
+        # Trailing stop loss
+        loss = loss
+
+        # Rebalance period in weeks
+        r = r
+
+        # Start date
+        start = start
+        start = datetime.strptime(start, "%Y-%m-%d")
+        today = date.today()
+
+        intervals = list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today))
+        intervals = [
+            intervals[i] for i in range(len(intervals)) if i % r == 0
+        ]  # relance after each r weeks
+
+        # Portfolios should follow the same structure
+        # List(Dict(symbol, price, ratio, market_cap, amount))
+        allocations = pickle.load(open(f"{strategy}.bin", "rb"))
+        allocations = [
+            alloc for alloc in allocations if len(alloc["allocations"]) > 0
+        ]  # drop empty allocation
+        allocations = [
+            alloc
+            for alloc in allocations
+            if "bitcoin" in [x["symbol"] for x in alloc["allocations"]]
+        ]  # bitcoin must be in valid allocation
+
+        krypfolio = allocations[0]
+        for alloc in krypfolio["allocations"]:
+            alloc["amount"] = 0  # init amount
+
+        # Prepare the folder for results
+        if not os.path.exists("./execution/results"):
+            os.mkdir("./execution/results")
+
+        # Rebalance the portfolio
+        start_btc = None
+        start_date = None
+        balance_ = None
+        end_balance_ = None
+        max_balance = -np.inf
+        prices = list()
+        kf_fund = list()
+        for alloc in allocations:
+            if alloc["timestamp"] in intervals:
+                total_ratio = sum([x["ratio"] for x in alloc["allocations"]])
+                if (
+                    np.abs(total_ratio - 1) > 0.001
+                ):  # check the validity of an allocation
+                    self._print("You need to check the allocation strategy")
+                else:
+                    self._print("*********************************")
+                    self._print("Rebalance at {}".format(alloc["timestamp"]))
+                    krypfolio, investment = self.rebalance(
+                        krypfolio, prices, alloc, investment
+                    )
+                    balance_ = self.balance(krypfolio)
+                    self._print(
+                        "Current total fund: {}".format(int(balance_ + investment))
+                    )
+                    kf_fund.append([alloc["timestamp"], balance_ + investment])
+                    price_ = self.price(krypfolio)
+                    prices.append(price_)
+                    if balance_ > max_balance:
+                        max_balance = balance_
+                    if ((max_balance - balance_) / max_balance > loss) and (
+                        balance_ != 0
+                    ):
+                        # Reset the portfolio
+                        self._print("STOP LOSS")
+                        for alloc_ in krypfolio["allocations"]:
+                            alloc_["amount"] = 0
+                        investment += balance_
+                        max_balance = -np.inf
+                    if not start_btc:
+                        start_btc = [
+                            x["close"]
+                            for x in alloc["allocations"]
+                            if x["symbol"] == "bitcoin"
+                        ][0]
+                        start_date = alloc["timestamp"]
+            else:  # daily alloc, no ratio was calculated
+                krypfolio = self.update_price(krypfolio, alloc)
+                balance_ = self.balance(krypfolio)
+                kf_fund.append([alloc["timestamp"], balance_ + investment])
                 if balance_ > max_balance:
                     max_balance = balance_
                 if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
                     # Reset the portfolio
-                    print("STOP LOSS")
+                    self._print("*********************************")
+                    self._print("STOP LOSS at {}".format(alloc["timestamp"]))
+                    self._print("Current portfolio's balance {}".format(int(balance_)))
+                    self._print(
+                        "Current loss {}".format(
+                            round((max_balance - balance_) / max_balance, 3)
+                        )
+                    )
                     for alloc_ in krypfolio["allocations"]:
                         alloc_["amount"] = 0
                     investment += balance_
                     max_balance = -np.inf
-                if not start_btc:
-                    start_btc = [
-                        x["close"]
-                        for x in alloc["allocations"]
-                        if x["symbol"] == "bitcoin"
-                    ][0]
-                    start_date = alloc["timestamp"]
-        else:  # daily alloc, no ratio was calculated
-            krypfolio = update_price(krypfolio, alloc)
-            balance_ = balance(krypfolio)
-            if balance_ > max_balance:
-                max_balance = balance_
-            if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
-                # Reset the portfolio
-                print("*********************************")
-                print("STOP LOSS at", alloc["timestamp"])
-                print("Current portfolio's balance", int(balance_))
-                print("Current loss", round((max_balance - balance_) / max_balance, 3))
-                for alloc_ in krypfolio["allocations"]:
-                    alloc_["amount"] = 0
-                investment += balance_
-                max_balance = -np.inf
 
-    end_btc = [
-        x["close"] for x in allocations[-1]["allocations"] if x["symbol"] == "bitcoin"
-    ][0]
-    end_balance_ = investment + balance_
-    print("*********************************")
-    print("REPORT")
-    print("Start date:", start_date)
-    print("Bitcoin: {}x".format(round(end_btc / start_btc, 1)))
-    print("Krypfolio: {}x".format(round(end_balance_ / init_investment, 1)))
+        end_date = allocations[-1]["timestamp"]
+        end_btc = [
+            x["close"]
+            for x in allocations[-1]["allocations"]
+            if x["symbol"] == "bitcoin"
+        ][0]
+        end_balance_ = investment + balance_
+        self._print("*********************************")
+        self._print("REPORT")
+        self._print("Start date: {}".format(start_date))
+        self._print("End date: {}".format(end_date))
+        self._print("Bitcoin: {}x".format(round(end_btc / start_btc, 1)))
+        self._print("Krypfolio: {}x".format(round(end_balance_ / init_investment, 1)))
+        self._print("*********************************")
+
+        # Write Krypfolio daily results to csv
+        df = pd.DataFrame(kf_fund, columns=["timestamp", "value"])
+        df.to_csv(
+            "./execution/results/{0}_{1}_{2}_{3}.csv".format(
+                strategy, start.strftime("%Y-%m-%d"), loss, r
+            ),
+            index=False,
+        )
 
 
 if __name__ == "__main__":
-    main()
-
-    print("Done")
+    krypfolio = Krypfolio(debug=True)
+    krypfolio.main(strategy="hodl30-3-days", loss=0.25, r=5, start="2015-01-01")
