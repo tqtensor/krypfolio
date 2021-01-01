@@ -22,17 +22,21 @@ def analysis(path, mode):
     returns = returns.iloc[:, 0].pct_change()
 
     if mode == "stats":
-        return (qs.stats.sharpe(returns) + qs.stats.sortino(returns)) / 2
+        return qs.stats.sortino(returns)
     elif mode == "report":
-        qs.reports.html(returns, "BTC-USD", output="./execution/best_strategy.html")
+        qs.reports.html(
+            returns,
+            "BTC-USD",
+            output=path.replace("csv", "html").replace("/results", ""),
+        )
 
 
 if __name__ == "__main__":
     # Grid search for best hyper-parameters
     _strategy = ["hodl30-3-days"]
     _start = ["2015-01-01"]
-    _loss = [round(l, 2) for l in np.arange(0.05, 0.86, 0.01)]
-    _r = np.arange(4, 13, 1)
+    _loss = [round(l, 2) for l in np.arange(0.05, 0.36, 0.01)]
+    _r = np.arange(1, 7, 1)
 
     args = [_strategy, _start, _loss, _r]
 

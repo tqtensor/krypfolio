@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 import sys
@@ -155,6 +156,7 @@ class Krypfolio:
         max_balance = -np.inf
         prices = list()
         kf_fund = list()
+        kf_allocation = dict()
         for alloc in allocations:
             if alloc["timestamp"] in intervals:
                 total_ratio = sum([x["ratio"] for x in alloc["allocations"]])
@@ -173,6 +175,9 @@ class Krypfolio:
                         "Current total fund: {}".format(int(balance_ + investment))
                     )
                     kf_fund.append([alloc["timestamp"], balance_ + investment])
+                    kf_allocation[alloc["timestamp"].strftime("%Y-%m-%d")] = krypfolio[
+                        "allocations"
+                    ]
                     price_ = self.price(krypfolio)
                     prices.append(price_)
                     if balance_ > max_balance:
@@ -197,6 +202,9 @@ class Krypfolio:
                 krypfolio = self.update_price(krypfolio, alloc)
                 balance_ = self.balance(krypfolio)
                 kf_fund.append([alloc["timestamp"], balance_ + investment])
+                kf_allocation[alloc["timestamp"].strftime("%Y-%m-%d")] = krypfolio[
+                    "allocations"
+                ]
                 if balance_ > max_balance:
                     max_balance = balance_
                 if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
@@ -238,7 +246,22 @@ class Krypfolio:
             index=False,
         )
 
+        if self.debug:
+            # Write Krypfolio daily allocations to json
+            json.dump(
+                kf_allocation,
+                open(
+                    "./execution/results/{0}_{1}_{2}_{3}.json".format(
+                        strategy, start.strftime("%Y-%m-%d"), loss, r
+                    ),
+                    "w",
+                ),
+                indent=4,
+                sort_keys=True,
+                default=str,
+            )
+
 
 if __name__ == "__main__":
     krypfolio = Krypfolio(debug=True)
-    krypfolio.main(strategy="hodl30-3-days", loss=0.25, r=5, start="2015-01-01")
+    krypfolio.main(strategy="hodl30-3-days", loss=0.31, r=3, start="2015-01-01")
