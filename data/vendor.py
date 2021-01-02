@@ -73,18 +73,18 @@ def download(path):
 
 def market_info():
     """
-    1. Get top 150 coins from Coinmarketcap
+    1. Get top 100 coins from Coinmarketcap
     2. Iterate back in time to get market info
     """
 
-    # Top 150 coins by market cap
+    # Top 100 coins by market cap
     top_coins = get(
         "https://web-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
         parameters={
             "aux": "circulating_supply,max_supply,total_supply",
             "convert": "USD",
             "cryptocurrency_type": "coins",
-            "limit": "150",
+            "limit": "100",
             "sort": "market_cap",
             "sort_dir": "desc",
             "start": "1",
@@ -100,7 +100,8 @@ def market_info():
         os.mkdir("./data/processed")
 
     # Prepare the list of coins to download
-    end = datetime(day=1, month=date.today().month, year=date.today().year)
+    today = date.today() + timedelta(weeks=6)
+    end = datetime(day=1, month=today.month, year=today.year)
     start = end + timedelta(weeks=-52 * 6)
     start = datetime(day=1, month=start.month, year=start.year)
 
@@ -119,6 +120,15 @@ def market_info():
 
     existing_data = glob.glob("./data/raw/*.json")
     to_download = list(set(all_data) - set(existing_data))
+
+    # If to_download is empty then re-download two latest files per coin
+    if len(to_download) == 0:
+        re_download = list()
+        for coin in top_coins:
+            re_download.append(sorted([path for path in existing_data if coin in path], reverse=True)[:2])
+        re_download = sum(re_download, [])
+        to_download = re_download
+    
 
     # Use multithread download
     with ThreadPool(32) as p:

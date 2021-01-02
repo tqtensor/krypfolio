@@ -38,7 +38,7 @@ class HODL20:
 
     def allocate(self, dt):
         """
-        Calculate krypfolio based on HODL 20 algorithm
+        Calculate Krypfolio based on HODL 20 algorithm
         """
 
         n_coins = 20

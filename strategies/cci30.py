@@ -61,7 +61,7 @@ class CCi30:
 
     def allocate(self, dt):
         """
-        Calculate krypfolio based on HODL 30 algorithm
+        Calculate Krypfolio based on HODL 30 algorithm
         """
 
         n_coins = 30
