@@ -6,10 +6,12 @@ from datetime import date, datetime, timedelta
 from multiprocessing.dummy import Pool as ThreadPool
 from random import randrange
 
+import numpy as np
 import pandas as pd
 from dateutil import rrule
 from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
+from scipy import stats
 from tqdm.auto import tqdm
 
 # Default headers for Coinmarketcap
@@ -59,7 +61,8 @@ def download(path):
         json.dump(
             data,
             open(
-                "./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)), "w",
+                "./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)),
+                "w",
             ),
             indent=4,
             sort_keys=True,
@@ -69,6 +72,26 @@ def download(path):
         print(data["status"])
 
     time.sleep(randrange(10))
+
+
+def clean():
+    """
+    Utility to clean and remove outlier
+    """
+
+    for path in glob.glob("./data/processed/*.csv"):
+        df = pd.read_csv(path)
+
+        if len(df) > 1:
+            df = df[(np.abs(stats.zscore(df["market_cap"].values)) < 6)]  # remove outliers
+            df = df[df["market_cap"] > 0]
+
+            df.drop_duplicates(inplace=True)
+
+            df = df[["close", "high", "low", "market_cap", "open", "timestamp", "volume"]]
+            df.to_csv(path, index=False)
+        else:
+            os.remove(path)
 
 
 def market_info():
@@ -100,7 +123,7 @@ def market_info():
         os.mkdir("./data/processed")
 
     # Prepare the list of coins to download
-    today = date.today() + timedelta(weeks=6)
+    today = date.today() + timedelta(days=31)
     end = datetime(day=1, month=today.month, year=today.year)
     start = end + timedelta(weeks=-52 * 6)
     start = datetime(day=1, month=start.month, year=start.year)
@@ -112,7 +135,7 @@ def market_info():
     all_data = list()
     for i in range(0, len(monthly_list) - n, n):
         time_end = int(monthly_list[i].timestamp())
-        time_start = int((monthly_list[i + n] + timedelta(days=1)).timestamp())
+        time_start = int((monthly_list[i + n]).timestamp())
         for coin in top_coins:
             all_data.append(
                 "./data/raw/{0}_{1}_{2}.json".format(coin, time_start, time_end)
@@ -121,14 +144,25 @@ def market_info():
     existing_data = glob.glob("./data/raw/*.json")
     to_download = list(set(all_data) - set(existing_data))
 
-    # If to_download is empty then re-download two latest files per coin
-    if len(to_download) == 0:
+    if len(to_download) != 0:
+        pass
+    else:  # compare the status timestamp and latest quote timestamp
         re_download = list()
         for coin in top_coins:
-            re_download.append(sorted([path for path in existing_data if coin in path], reverse=True)[:2])
-        re_download = sum(re_download, [])
+            latest_file = existing_data.copy()
+            latest_file = sorted(
+                [x for x in latest_file if coin + "_" in x], reverse=True
+            )[0]
+            latest_quote = json.load(open(latest_file, "r"))
+            now = datetime.utcnow()
+            quote_ts = datetime.strptime(
+                latest_quote["data"]["quotes"][-1]["time_close"],
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+            )
+
+            if (now - quote_ts).total_seconds() // 3600 > 26:
+                re_download.append(latest_file)
         to_download = re_download
-    
 
     # Use multithread download
     with ThreadPool(32) as p:
@@ -152,6 +186,8 @@ def market_info():
         data = pd.DataFrame(data)
         data.sort_values(by="timestamp", inplace=True)
         data.to_csv(f"./data/processed/{coin}.csv", index=False)
+
+    clean()  # remove bad data
 
 
 if __name__ == "__main__":
