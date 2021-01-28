@@ -46,7 +46,10 @@ if __name__ == "__main__":
     stats = list()
     for arg in tqdm(list(itertools.product(*args))):
         krypfolio.main(
-            strategy=arg[0], start=arg[1], loss=arg[2], r=arg[3],
+            strategy=arg[0],
+            start=arg[1],
+            loss=arg[2],
+            r=arg[3],
         )
         path = "./execution/results/{0}_{1}_{2}_{3}.csv".format(
             arg[0], arg[1], arg[2], arg[3]

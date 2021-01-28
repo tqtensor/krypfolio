@@ -130,7 +130,7 @@ class Krypfolio:
 
         # Portfolios should follow the same structure
         # List(Dict(symbol, price, ratio, market_cap, amount))
-        allocations = pickle.load(open(f"{strategy}.bin", "rb"))
+        allocations = json.load(open(f"./strategies/{strategy}.json", "r"))
         allocations = [
             alloc for alloc in allocations if len(alloc["allocations"]) > 0
         ]  # drop empty allocation
@@ -264,4 +264,4 @@ class Krypfolio:
 
 if __name__ == "__main__":
     krypfolio = Krypfolio(debug=True)
-    krypfolio.main(strategy="hodl30-3-days", loss=0.31, r=3, start="2015-01-01")
+    krypfolio.main(strategy="HODL5-3-days-36-cap", loss=0.31, r=3, start="2015-01-01")
