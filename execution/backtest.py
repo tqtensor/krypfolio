@@ -132,8 +132,12 @@ class Krypfolio:
         # List(Dict(symbol, price, ratio, market_cap, amount))
         allocations = json.load(open(f"./strategies/{strategy}.json", "r"))
         allocations = [
-            alloc for alloc in allocations if len(alloc["allocations"]) > 0
-        ]  # drop empty allocation
+            {
+                "timestamp": datetime.strptime(k, "%Y-%m-%d"),
+                "allocations": allocations[k],
+            }
+            for k in allocations.keys()
+        ]
         allocations = [
             alloc
             for alloc in allocations
@@ -206,7 +210,7 @@ class Krypfolio:
                     "allocations"
                 ]
                 if balance_ > max_balance:
-                    max_balance = balance_
+                    max_balance = balance_ + 0.001
                 if ((max_balance - balance_) / max_balance > loss) and (balance_ != 0):
                     # Reset the portfolio
                     self._print("*********************************")
@@ -264,4 +268,4 @@ class Krypfolio:
 
 if __name__ == "__main__":
     krypfolio = Krypfolio(debug=True)
-    krypfolio.main(strategy="HODL5-3-days-36-cap", loss=0.31, r=3, start="2015-01-01")
+    krypfolio.main(strategy="HODL5-3-days-25-cap", loss=0.10, r=2, start="2015-01-01")

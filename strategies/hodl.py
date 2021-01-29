@@ -123,13 +123,13 @@ class HODL:
         Calculate krypfolio based on HODL 30 algorithm
         """
 
-        # Get tradable coins on Binance exchange, which has historical data
-        coins = self.list_binance()
+        # # Get tradable coins on Binance exchange, which has historical data
+        # coins = self.list_binance()
 
         market = self.data_at_date(
             dt, ["ewma_market_cap_{}_days".format(self.alpha), "close"]
         )
-        market = [m for m in market if m["name"] in coins.keys()]  # filter
+        # market = [m for m in market if m["name"] in coins.keys()]  # filter
         market = list(
             sorted(
                 market,
@@ -138,8 +138,10 @@ class HODL:
         )[
             : self.n_coins
         ]  # sort by descending ratio
+        # for m in market:
+        #     m["symbol"] = coins[m["name"]]
         for m in market:
-            m["symbol"] = coins[m["name"]]
+            m["symbol"] = m["name"]
         total_cap = sum(
             [
                 np.sqrt(coin["ewma_market_cap_{}_days".format(self.alpha)])
@@ -226,7 +228,9 @@ class HODL:
         )  # sort by timestamp
         allocations = [alloc for alloc in allocations if len(alloc["allocations"]) > 0]
         allocations = [
-            alloc for alloc in allocations if alloc["allocations"][0]["symbol"] == "btc"
+            alloc
+            for alloc in allocations
+            if alloc["allocations"][0]["symbol"] == "bitcoin"
         ]
         for alloc in allocations:
             pre[alloc["timestamp"].strftime("%Y-%m-%d")] = alloc["allocations"]
@@ -236,7 +240,7 @@ class HODL:
 if __name__ == "__main__":
     alpha = 3
     n_coins = 5
-    cap = 0.36
+    cap = 0.25
     hodl30 = HODL(alpha, n_coins, cap)
     allocations = hodl30.main("2015-01-01")
     json.dump(
