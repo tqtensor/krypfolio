@@ -28,14 +28,13 @@ def analysis(path, mode):
     elif mode == "report":
         qs.reports.html(
             returns,
-            "BTC-USD",
             output=path.replace("csv", "html").replace("/results", ""),
         )
 
 
 if __name__ == "__main__":
     # Grid search for best hyper-parameters
-    _strategy = ["HODL5-3-days-25-cap"]
+    _strategy = ["HODL30-3-days-6-cap"]
     _start = ["2015-01-01"]
     _loss = [round(l, 2) for l in np.arange(0.05, 0.36, 0.01)]
     _r = np.arange(1, 7, 1)
@@ -61,4 +60,4 @@ if __name__ == "__main__":
     # Create full report for the best hyper-parameters with strategy
     best = max(stats, key=lambda x: x[1])[0]
     print(best)
-    # analysis(best, "report")
+    analysis(best, "report")

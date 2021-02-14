@@ -239,8 +239,8 @@ class HODL:
 
 if __name__ == "__main__":
     alpha = 3
-    n_coins = 5
-    cap = 0.25
+    n_coins = 30
+    cap = 0.06
     hodl30 = HODL(alpha, n_coins, cap)
     allocations = hodl30.main("2015-01-01")
     json.dump(

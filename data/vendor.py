@@ -84,7 +84,7 @@ def clean():
 
         if len(df) > 1:
             df = df[
-                (np.abs(stats.zscore(df["market_cap"].values)) < 6)
+                (np.abs(stats.zscore(df["market_cap"].values)) < 7)
             ]  # remove outliers
             df = df[df["market_cap"] > 0]
 

@@ -268,4 +268,4 @@ class Krypfolio:
 
 if __name__ == "__main__":
     krypfolio = Krypfolio(debug=True)
-    krypfolio.main(strategy="HODL5-3-days-25-cap", loss=0.10, r=2, start="2015-01-01")
+    krypfolio.main(strategy="HODL30-3-days-6-cap", loss=0.34, r=3, start="2015-01-01")
