@@ -15,6 +15,8 @@ from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 from tqdm.auto import tqdm
 
+from config import *
+
 # Default headers for Coinmarketcap
 headers = {
     "accept": "application/json, text/plain, */*",
@@ -120,7 +122,7 @@ class HODL:
 
     def allocate(self, dt):
         """
-        Calculate krypfolio based on HODL 30 algorithm
+        Calculate krypfolio based on HODL algorithm
         """
 
         # # Get tradable coins on Binance exchange, which has historical data
@@ -238,11 +240,8 @@ class HODL:
 
 
 if __name__ == "__main__":
-    alpha = 3
-    n_coins = 30
-    cap = 0.06
-    hodl30 = HODL(alpha, n_coins, cap)
-    allocations = hodl30.main("2015-01-01")
+    hodl = HODL(alpha, n_coins, cap)
+    allocations = hodl.main(start)
     json.dump(
         allocations,
         open(

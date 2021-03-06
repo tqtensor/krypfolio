@@ -61,8 +61,7 @@ def download(path):
         json.dump(
             data,
             open(
-                "./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)),
-                "w",
+                "./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)), "w",
             ),
             indent=4,
             sort_keys=True,

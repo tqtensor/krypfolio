@@ -1,0 +1,6 @@
+alpha = 3
+n_coins = 10
+cap = 0.18
+loss = 0.12
+r = 2
+start = "2019-01-01"

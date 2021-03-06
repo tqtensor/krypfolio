@@ -9,3 +9,4 @@ data/processed
 execution/results
 *.html
 strategies/*.json
+config.py

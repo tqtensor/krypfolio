@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from dateutil import rrule
 
+from config import *
+
 sys.path.insert(0, "./strategies")
 
 
@@ -268,4 +270,9 @@ class Krypfolio:
 
 if __name__ == "__main__":
     krypfolio = Krypfolio(debug=True)
-    krypfolio.main(strategy="HODL30-3-days-6-cap", loss=0.34, r=3, start="2015-01-01")
+    krypfolio.main(
+        strategy="HODL{0}-{1}-days-{2}-cap".format(n_coins, alpha, str(int(100 * cap))),
+        loss=loss,
+        r=r,
+        start=start,
+    )
