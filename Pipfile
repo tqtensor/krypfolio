@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests = "*"
-python-dateutil = "*"
 pandas = "*"
-tqdm = "*"
-scipy = "*"
+python-dateutil = "*"
 quantstats = "*"
+requests = "*"
+scikit-learn = "*"
+scipy = "*"
+tqdm = "*"
 
 [dev-packages]
 
