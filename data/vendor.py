@@ -12,6 +12,7 @@ from dateutil import rrule
 from requests import Session
 from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
 from scipy import stats
+from sklearn.neighbors import LocalOutlierFactor
 from tqdm.auto import tqdm
 
 # Default headers for Coinmarketcap
@@ -60,9 +61,7 @@ def download(path):
     if data["status"]["error_code"] == 0:
         json.dump(
             data,
-            open(
-                "./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)), "w",
-            ),
+            open("./data/raw/{0}_{1}_{2}.json".format(coin, int(start), int(end)), "w"),
             indent=4,
             sort_keys=True,
             default=str,
@@ -82,9 +81,15 @@ def clean():
         df = pd.read_csv(path)
 
         if len(df) > 1:
-            df = df[
-                (np.abs(stats.zscore(df["market_cap"].values)) < 7)
-            ]  # remove outliers
+            X = df["market_cap"].values.reshape(-1, 1)
+            y = LocalOutlierFactor(
+                n_neighbors=9, metric="manhattan", contamination=0.02
+            ).fit_predict(X)
+            inlier_index = np.where(y == 1)
+            df = df.iloc[inlier_index]
+
+            del X, y, inlier_index
+
             df = df[df["market_cap"] > 0]
 
             df.drop_duplicates(inplace=True)
