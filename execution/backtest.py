@@ -74,15 +74,32 @@ class Krypfolio:
         fund = 0
         injection = None
         if investment > 0:
-            try:
-                if (price_ > prices[-1]) and (price_ > prices[-2]):
+            if len(prices) >= 3:
+                a, b, c = prices[-2], prices[-1], price_
+                if a <= b and b <= c:
                     fund = investment
                     injection = "Third"
-                if (price_ > prices[-1]) and (price_ <= prices[-2]):
+                if (a <= b and b >= c and a <= c) or (a >= b and b <= c and a <= c):
                     fund = 0.25 * investment
                     injection = "Second"
-            except:
-                pass
+                if a >= b and b <= c and a >= c:
+                    fund = 0.20 * investment
+                    injection = "First"
+                if (a >= b and b >= c) or (a <= b and b >= c and a >= c):
+                    fund = 0
+                    injection = None
+            elif len(prices) == 2:
+                a, b = prices[-1], price_
+                if a <= b:
+                    fund = 0.25 * investment
+                    injection = "Second"
+                else:
+                    fund = 0
+                    injection = None
+            else:
+                fund = 0.20 * investment
+                injection = "First"
+
             if balance_ == 0:
                 fund = 0.20 * investment
                 injection = "First"
