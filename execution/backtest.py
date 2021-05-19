@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 import sys
 from datetime import date, datetime
 
@@ -9,8 +8,6 @@ import pandas as pd
 from dateutil import rrule
 
 from config import *
-
-sys.path.insert(0, "./strategies")
 
 
 class Krypfolio:
@@ -124,32 +121,22 @@ class Krypfolio:
             start: start date
         """
 
-        # Strategy name
-        strategy = strategy
-
         # Initial invesment
-        investment = 1000
+        investment = 10000
         init_investment = investment
 
-        # Trailing stop loss
-        loss = loss
-
-        # Rebalance period in weeks
-        r = r
-
         # Start date
-        start = start
         start = datetime.strptime(start, "%Y-%m-%d")
         today = date.today()
 
         intervals = list(rrule.rrule(rrule.WEEKLY, dtstart=start, until=today))
         intervals = [
             intervals[i] for i in range(len(intervals)) if i % r == 0
-        ]  # relance after each r weeks
+        ]  # rebalance after each r weeks
 
         # Portfolios should follow the same structure
         # List(Dict(symbol, price, ratio, market_cap, amount))
-        allocations = json.load(open(f"./strategies/{strategy}.json", "r"))
+        allocations = json.load(open(f"strategies/{strategy}.json", "r"))
         allocations = [
             {
                 "timestamp": datetime.strptime(k, "%Y-%m-%d"),
@@ -195,7 +182,7 @@ class Krypfolio:
                     )
                     balance_ = self.balance(krypfolio)
                     self._print(
-                        "Current total fund: {}".format(int(balance_ + investment))
+                        "Current total value: {}".format(int(balance_ + investment))
                     )
                     kf_fund.append([alloc["timestamp"], balance_ + investment])
                     kf_allocation[alloc["timestamp"].strftime("%Y-%m-%d")] = krypfolio[

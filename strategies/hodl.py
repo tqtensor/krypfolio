@@ -2,11 +2,9 @@ import glob
 import json
 import multiprocessing
 import ntpath
-import sys
 import traceback
 from datetime import date, datetime
 from multiprocessing import Pool
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -109,9 +107,7 @@ class HODL:
                 df = df[df["timestamp"] == pd.Timestamp(dt)]
                 if len(df) > 0:
                     if all(df[ft].values[0] for ft in features) > 0:
-                        tmp = {
-                            "name": ntpath.basename(path).replace(".csv", ""),
-                        }
+                        tmp = {"name": ntpath.basename(path).replace(".csv", "")}
                         for ft in features:
                             tmp[ft] = df[ft].values[0]
                         data.append(tmp)

@@ -4,10 +4,10 @@ import warnings
 import numpy as np
 import pandas as pd
 import quantstats as qs
-from backtest import Krypfolio
 from tqdm.auto import tqdm
 
 from config import *
+from execution.backtest import Krypfolio
 
 warnings.filterwarnings("ignore")
 
@@ -26,7 +26,7 @@ def analysis(path, mode):
     returns = returns.fillna(method="bfill")
 
     if mode == "stats":
-        return qs.stats.sortino(returns)
+        return qs.stats.sharpe(returns)
     elif mode == "report":
         qs.reports.html(
             returns,
@@ -49,9 +49,7 @@ if __name__ == "__main__":
 
     stats = list()
     for arg in tqdm(list(itertools.product(*args))):
-        krypfolio.main(
-            strategy=arg[0], start=arg[1], loss=arg[2], r=arg[3],
-        )
+        krypfolio.main(strategy=arg[0], start=arg[1], loss=arg[2], r=arg[3])
         path = "./execution/results/{0}_{1}_{2}_{3}.csv".format(
             arg[0], arg[1], arg[2], arg[3]
         )
