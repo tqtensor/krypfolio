@@ -4,15 +4,25 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+bocd = "*"
+ipywidgets = ">=7.6"
+jupyterlab = ">=3"
 pandas = "*"
+plotly = "*"
 python-dateutil = "*"
 quantstats = "*"
 requests = "*"
 scikit-learn = "*"
 scipy = "*"
 tqdm = "*"
+wget = "*"
+yfinance = "*"
 
 [dev-packages]
+black = "*"
+isort = "*"
+nb-black = "*"
+pipfile-sort = "*"
 
 [requires]
 python_version = "3.8"
